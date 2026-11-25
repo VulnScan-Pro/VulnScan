@@ -1,7 +1,3 @@
-
-
-https://github.com/user-attachments/assets/9554b778-ce2b-46c5-a6d9-dc5013e61a40
-
 # VulnScan Pro
 
 A self-hosted, command-driven vulnerability scanner with AI-powered risk analysis. Combines Nmap, Nuclei, SQLMap, Dalfox, and WhatWeb into a unified dashboard.
@@ -75,5 +71,14 @@ Unlike traditional scanners that require separate CLI tools, VulnScan Pro provid
 - **Linux (Kali/Ubuntu):** Fully supported (see Linux/macOS Notes above).
 - **macOS:** Should work with Homebrew-installed tools (Nmap, Ruby, Python).
 
+## Team & Credits
+| Name | Role | Contribution |
+| :--- | :--- | :--- |
+| **Vishwajit Vegda** | Team Lead | Scanning Modules & Backend Implementation |
+| **Jainish Patel** | Developer | AI & API Key Integration |
+| **Shubh Contractor** | Developer | Frontend UI/UX & Styling |
+| **Samarth Patel** | Developer | Data Enrichment & Risk Engine |
+
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
