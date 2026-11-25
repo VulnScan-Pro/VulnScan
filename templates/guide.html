@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Command Guide // VulnScan Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #1e222d; 
+            --bg-panel: rgba(30, 34, 45, 0.85);
+            --text-main: #dcd7ba; 
+            --text-muted: #7a8292;
+            --accent-purple: #957fb8; 
+            --accent-blue: #7e9cd8;
+            --accent-green: #98bb6c; 
+            --accent-red: #e46876; 
+            --accent-yellow: #e6c384;
+            --border: rgba(255,255,255,0.05);
+        }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #d2b9b0 0%, #a5a3bd 30%, #677b96 70%, #3a4a68 100%);
+            background-attachment: fixed;
+            color: var(--text-main); margin: 0; padding: 0; min-height: 100vh; 
+            display: flex; flex-direction: column; 
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .top-bar { height: 36px; background: var(--bg-panel); backdrop-filter: blur(20px); display: flex; justify-content: space-between; align-items: center; padding: 0 16px; font-size: 0.75rem; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        .panel { background: var(--bg-panel); backdrop-filter: blur(24px); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3); overflow: hidden; }
+        .panel-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; }
+        .panel-body { padding: 20px; }
+        .cmd-box { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; color: #a9b1d6; border: 1px solid var(--border); position: relative; margin-bottom: 12px; word-break: break-all; }
+        .copy-btn { position: absolute; right: 8px; top: 8px; background: rgba(255,255,255,0.1); border: none; color: var(--text-main); border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.7rem; }
+        .copy-btn:hover { background: var(--accent-purple); color: #000; }
+        .tool-title { font-size: 1.2rem; font-weight: bold; color: var(--accent-blue); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+        .tool-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px; }
+        .search-container { position: sticky; top: 20px; z-index: 10; margin-bottom: 24px; }
+        .search-field { background: var(--bg-panel); border: 1px solid var(--border); color: white; padding: 16px; border-radius: 12px; width: 100%; outline: none; font-size: 1rem; }
+        .search-field:focus { border-color: var(--accent-purple); }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="flex items-center gap-4">
+            <a href="/dashboard" class="text-[var(--text-muted)] hover:text-white"><i class="fa-solid fa-arrow-left mr-1"></i> Dashboard</a>
+            <span class="text-[var(--border)]">|</span>
+            <span class="text-[var(--accent-blue)] font-semibold"><i class="fa-solid fa-book mr-1"></i> Command Guide</span>
+        </div>
+        <div class="flex items-center gap-4 mono text-[var(--text-muted)]">
+            <span>{{ active_provider|upper if active_provider else 'OFFLINE' }}</span>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto w-full p-6">
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-field shadow-lg" placeholder="Search for a command, tool, or flag...">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="guideContainer">
+
+            <!-- NMAP -->
+            <div class="panel guide-item">
+                <div class="panel-header"><span><i class="fa-solid fa-network-wired mr-2 text-[var(--accent-green)]"></i> Nmap (Network)</span></div>
+                <div class="panel-body">
+                    <div class="tool-title">Network Recon & Port Scanning</div>
+                    <div class="tool-desc">Maps the attack surface by finding open ports and services.</div>
+                    
+                    <div class="cmd-box">nmap -sT -Pn -v 192.168.0.77<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                    <div class="cmd-box">nmap -sT -sV -Pn -v -A 192.168.0.77<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                    <div class="cmd-box">nmap --script vuln -sT -sV -Pn 192.168.0.77<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                    <div class="cmd-box">nmap -sU -Pn 192.168.0.77<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                </div>
+            </div>
+
+            <!-- SQLMAP -->
+            <div class="panel guide-item">
+                <div class="panel-header"><span><i class="fa-solid fa-database mr-2 text-[var(--accent-red)]"></i> SQLMap (Web)</span></div>
+                <div class="panel-body">
+                    <div class="tool-title">SQL Injection</div>
+                    <div class="tool-desc">Automated detection and exploitation of SQL injection flaws.</div>
+                    
+                    <div class="cmd-box">python C:\\Tools\\sqlmap\sqlmap.py -u "http://target.com/page?id=1" --batch<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                    <div class="cmd-box">python C:\\Tools\\sqlmap\sqlmap.py -u "http://target.com/login" --forms --crawl=2 --batch<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                    <div class="cmd-box">python C:\\Tools\\sqlmap\sqlmap.py -u "http://target.com/login" --data="user=test&pass=test" -p "user" --batch<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                </div>
+            </div>
+
+            <!-- DALFOX -->
+            <div class="panel guide-item">
+                <div class="panel-header"><span><i class="fa-solid fa-code mr-2 text-[var(--accent-yellow)]"></i> Dalfox (Web)</span></div>
+                <div class="panel-body">
+                    <div class="tool-title">Cross-Site Scripting (XSS)</div>
+                    <div class="tool-desc">Fast XSS scanner that supports GET and POST parameters.</div>
+                    
+                    <div class="cmd-box">dalfox url "http://target.com/search?q=test" --silence<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                    <div class="cmd-box">dalfox url "http://target.com/login" --method POST --data "user=test&pass=test" --silence<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                </div>
+            </div>
+
+            <!-- NUCLEI -->
+            <div class="panel guide-item">
+                <div class="panel-header"><span><i class="fa-solid fa-radiation mr-2 text-[var(--accent-purple)]"></i> Nuclei (Web/Network)</span></div>
+                <div class="panel-body">
+                    <div class="tool-title">Template-Based Vulnerability Scanning</div>
+                    <div class="tool-desc">Checks for known CVEs, misconfigurations, and exposures.</div>
+                    
+                    <div class="cmd-box">nuclei -u "http://target.com" -tags cve -silent<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                    <div class="cmd-box">nuclei -u "http://target.com" -tags exposure,misconfig -silent<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                    <div class="cmd-box">nuclei -u "http://target.com" -dast -silent<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                </div>
+            </div>
+
+            <!-- WHATWEB -->
+            <div class="panel guide-item">
+                <div class="panel-header"><span><i class="fa-solid fa-fingerprint mr-2 text-[var(--accent-blue)]"></i> WhatWeb (Web)</span></div>
+                <div class="panel-body">
+                    <div class="tool-title">Technology Fingerprinting</div>
+                    <div class="tool-desc">Identifies CMS, server versions, and frameworks. Note the Ruby prefix.</div>
+                    
+                    <div class="cmd-box">ruby C:\\Tools\\WhatWeb\\whatweb "http://target.com" --color=never<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                    <div class="cmd-box">ruby C:\\Tools\\WhatWeb\\whatweb "http://target.com" --aggression=3 --color=never<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                </div>
+            </div>
+
+            <!-- DNSENUM -->
+            <div class="panel guide-item">
+                <div class="panel-header"><span><i class="fa-solid fa-sitemap mr-2 text-[var(--accent-green)]"></i> DNSenum (Network)</span></div>
+                <div class="panel-body">
+                    <div class="tool-title">DNS Enumeration</div>
+                    <div class="tool-desc">Finds subdomains and DNS records for a target domain.</div>
+                    
+                    <div class="cmd-box">perl C:\\Tools\\dnsenum\dnsenum.pl target.com --threads 5<button class="copy-btn" onclick="copyCmd(this)">Copy</button></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="top-bar mt-auto border-t border-b-0">
+        <div class="flex gap-4"><span><i class="fa-brands fa-linux mr-1"></i> System Ready</span></div>
+        <div class="flex items-center gap-4 mono"><span id="clock-bottom">00:00</span></div>
+    </div>
+
+    <script>
+        function copyCmd(btn) {
+            const text = btn.parentElement.innerText.replace('Copy', '').trim();
+            navigator.clipboard.writeText(text).then(() => {
+                const original = btn.innerText;
+                btn.innerText = 'Copied!';
+                setTimeout(() => btn.innerText = original, 2000);
+            });
+        }
+
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('.guide-item');
+            items.forEach(item => {
+                item.style.display = item.innerText.toLowerCase().includes(term) ? 'block' : 'none';
+            });
+        });
+
+        function updateClock() {
+            const t = new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" });
+            const el = document.getElementById("clock-bottom"); if (el) el.textContent = t;
+        }
+        setInterval(updateClock, 1000); updateClock();
+    </script>
+</body>
+</html>

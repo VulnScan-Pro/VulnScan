@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Settings // VulnScan Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #1e222d;
+            --bg-panel: rgba(30, 34, 45, 0.85);
+            --text-main: #dcd7ba;
+            --text-muted: #7a8292;
+            --accent-purple: #957fb8;
+            --accent-blue: #7e9cd8;
+            --accent-green: #98bb6c;
+            --accent-red: #e46876;
+            --accent-yellow: #e6c384;
+            --border: rgba(255,255,255,0.05);
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #d2b9b0 0%, #a5a3bd 30%, #677b96 70%, #3a4a68 100%);
+            background-attachment: fixed;
+            color: var(--text-main); margin: 0; padding: 0; min-height: 100vh;
+            display: flex; flex-direction: column;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+        .top-bar { height: 36px; background: var(--bg-panel); backdrop-filter: blur(20px); display: flex; justify-content: space-between; align-items: center; padding: 0 16px; font-size: 0.75rem; border-bottom: 1px solid var(--border); }
+        .panel { background: var(--bg-panel); backdrop-filter: blur(24px); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3); overflow: hidden; }
+        .panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-size: 0.95rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .panel-body { padding: 20px; }
+        .input-field { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 10px; border-radius: 8px; color: var(--text-main); outline: none; font-size: 0.85rem; }
+        .input-field:focus { border-color: var(--accent-purple); }
+        .btn-soft { background: rgba(255,255,255,0.05); color: var(--text-main); border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-soft:hover { background: rgba(255,255,255,0.1); }
+        .btn-primary { background: var(--accent-purple); color: #111; border: none; }
+        .btn-primary:hover { background: #a68cc9; }
+        .provider-card { border: 1px solid var(--border); background: rgba(0,0,0,0.2); border-radius: 12px; padding: 16px; transition: all 0.3s; }
+        .provider-card.active { border-color: var(--accent-purple); box-shadow: 0 0 15px rgba(149,127,184,0.15); background: rgba(149,127,184,0.05); }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="flex items-center gap-4">
+            <a href="/dashboard" class="text-[var(--text-muted)] hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-1"></i> Dashboard</a>
+            <span class="text-[var(--border)]">|</span>
+            <span class="text-[var(--accent-purple)] font-semibold"><i class="fa-solid fa-gear mr-1"></i> Settings</span>
+        </div>
+        <div class="flex items-center gap-4 mono text-[var(--text-muted)]">
+            <span id="clock">00:00</span>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto w-full p-6 space-y-6">
+
+        <div class="panel">
+            <div class="panel-header">
+                <span><i class="fa-solid fa-brain mr-2 text-[var(--accent-purple)]"></i> AI Provider Configuration</span>
+                <span class="text-xs text-[var(--text-muted)]">LOCAL STORAGE</span>
+            </div>
+            <div class="panel-body">
+                <p class="text-sm text-[var(--text-muted)] mb-4">API keys are stored locally in your SQLite database. The active provider is used for report generation.</p>
+                <div class="flex items-center gap-2 text-sm">
+                    <span class="w-2 h-2 rounded-full {% if active_provider %}bg-[var(--accent-green)]{% else %}bg-[var(--accent-red)]{% endif %}"></span>
+                    Active: <span class="font-bold text-[var(--accent-blue)]">{{ active_provider|upper if active_provider else 'NONE' }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="p-3 rounded-lg text-sm border {% if category == 'success' %}border-[var(--accent-green)] text-[var(--accent-green)] bg-[rgba(152,187,108,0.1)]{% else %}border-[var(--accent-red)] text-[var(--accent-red)] bg-[rgba(228,104,118,0.1)]{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- GROQ -->
+            <div class="provider-card {% if active_provider == 'groq' %}active{% endif %}">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="font-bold flex items-center gap-2"><i class="fa-solid fa-bolt text-[var(--accent-yellow)]"></i> Groq</div>
+                    <span class="text-xs {% if configured.get('groq') %}text-[var(--accent-green)]{% else %}text-[var(--text-muted)]{% endif %}">{% if configured.get('groq') %}READY{% else %}UNSET{% endif %}</span>
+                </div>
+                <form method="POST" action="/settings/save_key" class="space-y-3">
+                    <input type="hidden" name="provider" value="groq">
+                    <input type="password" name="api_key" placeholder="gsk_..." class="input-field mono" autocomplete="off">
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn-soft flex-1">Save</button>
+                        {% if configured.get('groq') and active_provider != 'groq' %}
+                        <button type="button" onclick="setActive('groq')" class="btn-soft flex-1 text-[var(--accent-purple)] border-[var(--accent-purple)]">Activate</button>
+                        {% elif active_provider == 'groq' %}
+                        <span class="btn-soft flex-1 text-center text-[var(--accent-green)] border-[var(--accent-green)] cursor-default bg-[rgba(152,187,108,0.1)]">Active</span>
+                        {% endif %}
+                    </div>
+                </form>
+                {% if configured.get('groq') %}<form method="POST" action="/settings/delete_key/groq" class="mt-2"><button type="submit" class="text-xs text-[var(--accent-red)] hover:underline">Delete Key</button></form>{% endif %}
+            </div>
+
+            <!-- OPENAI -->
+            <div class="provider-card {% if active_provider == 'openai' %}active{% endif %}">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="font-bold flex items-center gap-2"><i class="fa-solid fa-robot text-[var(--accent-green)]"></i> OpenAI</div>
+                    <span class="text-xs {% if configured.get('openai') %}text-[var(--accent-green)]{% else %}text-[var(--text-muted)]{% endif %}">{% if configured.get('openai') %}READY{% else %}UNSET{% endif %}</span>
+                </div>
+                <form method="POST" action="/settings/save_key" class="space-y-3">
+                    <input type="hidden" name="provider" value="openai">
+                    <input type="password" name="api_key" placeholder="sk-..." class="input-field mono" autocomplete="off">
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn-soft flex-1">Save</button>
+                        {% if configured.get('openai') and active_provider != 'openai' %}
+                        <button type="button" onclick="setActive('openai')" class="btn-soft flex-1 text-[var(--accent-purple)] border-[var(--accent-purple)]">Activate</button>
+                        {% elif active_provider == 'openai' %}
+                        <span class="btn-soft flex-1 text-center text-[var(--accent-green)] border-[var(--accent-green)] cursor-default bg-[rgba(152,187,108,0.1)]">Active</span>
+                        {% endif %}
+                    </div>
+                </form>
+                {% if configured.get('openai') %}<form method="POST" action="/settings/delete_key/openai" class="mt-2"><button type="submit" class="text-xs text-[var(--accent-red)] hover:underline">Delete Key</button></form>{% endif %}
+            </div>
+
+            <!-- ANTHROPIC -->
+            <div class="provider-card {% if active_provider == 'anthropic' %}active{% endif %}">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="font-bold flex items-center gap-2"><i class="fa-solid fa-feather text-[var(--accent-yellow)]"></i> Anthropic</div>
+                    <span class="text-xs {% if configured.get('anthropic') %}text-[var(--accent-green)]{% else %}text-[var(--text-muted)]{% endif %}">{% if configured.get('anthropic') %}READY{% else %}UNSET{% endif %}</span>
+                </div>
+                <form method="POST" action="/settings/save_key" class="space-y-3">
+                    <input type="hidden" name="provider" value="anthropic">
+                    <input type="password" name="api_key" placeholder="sk-ant-..." class="input-field mono" autocomplete="off">
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn-soft flex-1">Save</button>
+                        {% if configured.get('anthropic') and active_provider != 'anthropic' %}
+                        <button type="button" onclick="setActive('anthropic')" class="btn-soft flex-1 text-[var(--accent-purple)] border-[var(--accent-purple)]">Activate</button>
+                        {% elif active_provider == 'anthropic' %}
+                        <span class="btn-soft flex-1 text-center text-[var(--accent-green)] border-[var(--accent-green)] cursor-default bg-[rgba(152,187,108,0.1)]">Active</span>
+                        {% endif %}
+                    </div>
+                </form>
+                {% if configured.get('anthropic') %}<form method="POST" action="/settings/delete_key/anthropic" class="mt-2"><button type="submit" class="text-xs text-[var(--accent-red)] hover:underline">Delete Key</button></form>{% endif %}
+            </div>
+
+            <!-- MISTRAL (replaces Gemini) -->
+            <div class="provider-card {% if active_provider == 'mistral' %}active{% endif %}">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="font-bold flex items-center gap-2"><i class="fa-solid fa-wind text-[var(--accent-blue)]"></i> Mistral</div>
+                    <span class="text-xs {% if configured.get('mistral') %}text-[var(--accent-green)]{% else %}text-[var(--text-muted)]{% endif %}">{% if configured.get('mistral') %}READY{% else %}UNSET{% endif %}</span>
+                </div>
+                <form method="POST" action="/settings/save_key" class="space-y-3">
+                    <input type="hidden" name="provider" value="mistral">
+                    <input type="password" name="api_key" placeholder="..." class="input-field mono" autocomplete="off">
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn-soft flex-1">Save</button>
+                        {% if configured.get('mistral') and active_provider != 'mistral' %}
+                        <button type="button" onclick="setActive('mistral')" class="btn-soft flex-1 text-[var(--accent-purple)] border-[var(--accent-purple)]">Activate</button>
+                        {% elif active_provider == 'mistral' %}
+                        <span class="btn-soft flex-1 text-center text-[var(--accent-green)] border-[var(--accent-green)] cursor-default bg-[rgba(152,187,108,0.1)]">Active</span>
+                        {% endif %}
+                    </div>
+                </form>
+                {% if configured.get('mistral') %}<form method="POST" action="/settings/delete_key/mistral" class="mt-2"><button type="submit" class="text-xs text-[var(--accent-red)] hover:underline">Delete Key</button></form>{% endif %}
+            </div>
+
+            <!-- DEEPSEEK -->
+            <div class="provider-card {% if active_provider == 'deepseek' %}active{% endif %}">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="font-bold flex items-center gap-2"><i class="fa-solid fa-water text-[var(--accent-blue)]"></i> DeepSeek</div>
+                    <span class="text-xs {% if configured.get('deepseek') %}text-[var(--accent-green)]{% else %}text-[var(--text-muted)]{% endif %}">{% if configured.get('deepseek') %}READY{% else %}UNSET{% endif %}</span>
+                </div>
+                <form method="POST" action="/settings/save_key" class="space-y-3">
+                    <input type="hidden" name="provider" value="deepseek">
+                    <input type="password" name="api_key" placeholder="sk-..." class="input-field mono" autocomplete="off">
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn-soft flex-1">Save</button>
+                        {% if configured.get('deepseek') and active_provider != 'deepseek' %}
+                        <button type="button" onclick="setActive('deepseek')" class="btn-soft flex-1 text-[var(--accent-purple)] border-[var(--accent-purple)]">Activate</button>
+                        {% elif active_provider == 'deepseek' %}
+                        <span class="btn-soft flex-1 text-center text-[var(--accent-green)] border-[var(--accent-green)] cursor-default bg-[rgba(152,187,108,0.1)]">Active</span>
+                        {% endif %}
+                    </div>
+                </form>
+                {% if configured.get('deepseek') %}<form method="POST" action="/settings/delete_key/deepseek" class="mt-2"><button type="submit" class="text-xs text-[var(--accent-red)] hover:underline">Delete Key</button></form>{% endif %}
+            </div>
+
+        </div>
+    </div>
+
+    <div class="top-bar mt-auto border-t border-b-0">
+        <div class="flex gap-4"><span><i class="fa-brands fa-linux mr-1"></i> System Ready</span></div>
+        <div class="flex items-center gap-4 mono"><span id="clock-bottom">00:00</span></div>
+    </div>
+
+    <script>
+        function setActive(provider) {
+            fetch('/settings/set_active', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({provider: provider}) })
+            .then(res => res.json()).then(data => { if (data.success) location.reload(); else alert('Error: ' + data.error); })
+            .catch(err => alert('Failed: ' + err.message));
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const time = now.toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute:'2-digit'});
+            document.getElementById('clock').textContent = time;
+            if (document.getElementById('clock-bottom')) document.getElementById('clock-bottom').textContent = time;
+        }
+        setInterval(updateClock, 1000); updateClock();
+    </script>
+</body>
+</html>

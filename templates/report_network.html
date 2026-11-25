@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Internal Network Penetration Testing Report — {{ scan_name }}</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --accent: #1a56db;
+    --dark: #0d0d0d;
+    --critical: #e53935;
+    --high: #f57c31;
+    --medium: #f4c430;
+    --low: #2fb573;
+    --info: #4fb4e8;
+    --muted: #666;
+    --bg-light: #f8f9fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #fff;
+    color: #333;
+    margin: 0; padding: 0; line-height: 1.6;
+  }
+  .page {
+    width: 210mm; min-height: 297mm;
+    background: #fff; position: relative;
+    padding: 20mm 15mm 20mm 15mm;
+    page-break-after: always; overflow: hidden;
+  }
+  .page:last-child { page-break-after: avoid; }
+  
+  .bar-top, .bar-bottom {
+    position: absolute; left: 0; right: 0; height: 8px; background: var(--accent);
+  }
+  .bar-top { top: 0; } .bar-bottom { bottom: 0; }
+  
+  .footer {
+    position: absolute; bottom: 12mm; left: 15mm; right: 15mm;
+    display: flex; justify-content: space-between;
+    font-size: 8pt; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.5px; border-top: 1px solid #ddd; padding-top: 4mm;
+  }
+  .page-number {
+    position: absolute; bottom: 12mm; right: 15mm;
+    font-size: 9pt; color: var(--dark);
+  }
+
+  h1 { font-size: 18pt; margin: 0 0 10px; color: var(--dark); border-bottom: 2px solid #eee; padding-bottom: 8px; }
+  h2 { font-size: 14pt; margin: 24px 0 12px; color: var(--dark); }
+  h3 { font-size: 12pt; margin: 16px 0 8px; color: var(--dark); }
+  p { margin: 0 0 10px 0; font-size: 10pt; color: #333; }
+  ul, ol { margin: 0 0 15px 20px; font-size: 10pt; }
+  li { margin-bottom: 6px; }
+
+  /* Cover */
+  .cover { display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .title-block { margin-top: 40mm; }
+  .cover .eyebrow { color: var(--accent); text-transform: uppercase; font-size: 10pt; font-weight: 700; letter-spacing: 1px; margin-bottom: 6px; }
+  .cover .doc-type-caps { font-size: 28pt; font-weight: 800; text-transform: uppercase; margin: 4px 0; line-height: 1.2; color: var(--dark); }
+  .cover .client-name { font-size: 24pt; font-weight: 800; color: var(--accent); text-transform: uppercase; }
+  .cover .divider { width: 60mm; height: 3px; background: var(--accent); margin: 15px 0; }
+  .cover .meta { font-size: 10pt; margin: 4px 0; color: #444; }
+  .cover .confidential-tag { color: var(--accent); font-weight: 700; font-size: 11pt; margin-top: 20mm; }
+  .cover .attention { font-size: 8pt; color: var(--muted); border-top: 1px solid #ddd; padding-top: 8px; margin-top: 5mm; }
+
+  /* TOC */
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list li { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: 8px 0; font-size: 11pt; }
+
+  /* Tables */
+  table.data { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 9.5pt; }
+  table.data th { background: var(--dark); color: #fff; text-align: left; padding: 10px; font-weight: 600; }
+  table.data td { border: 1px solid #ddd; padding: 10px; vertical-align: top; }
+  table.data tr:nth-child(even) td { background: var(--bg-light); }
+
+  /* Severity */
+  .sev-cell { text-align: center; font-weight: 700; color: #fff; padding: 4px 8px; font-size: 8pt; border-radius: 4px; display: inline-block;}
+  .sev-critical { background: var(--critical); } 
+  .sev-high { background: var(--high); } 
+  .sev-medium { background: var(--medium); color: #333; } 
+  .sev-low { background: var(--low); } 
+  .sev-info { background: var(--info); }
+
+  /* Action Boxes */
+  .action-box { padding: 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid; background: #fafafa; page-break-inside: avoid; }
+  .action-box h4 { margin: 0 0 8px 0; font-size: 11pt; }
+  .action-box ul, .action-box ol { padding-left: 20px; margin: 0; }
+  .action-box li { font-size: 9.5pt; margin-bottom: 4px; }
+
+  /* Findings */
+  .finding-box { border: 1px solid #ddd; border-radius: 6px; margin-bottom: 20px; page-break-inside: avoid; }
+  .finding-header { padding: 12px 15px; font-weight: 700; font-size: 11pt; color: #fff; border-radius: 6px 6px 0 0; display: flex; justify-content: space-between; align-items: center; }
+  .finding-body { padding: 15px; }
+  .finding-meta { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #eee; font-size: 9pt; display: flex; gap: 20px; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="page cover">
+  <div class="bar-top"></div>
+  <div class="bar-bottom"></div>
+  <div class="title-block">
+    <div class="eyebrow">INTERNAL NETWORK PENETRATION TESTING</div>
+    <div class="doc-type-caps">Security Report</div>
+    <div class="client-name">{{ scan_name }}</div>
+    <div class="divider"></div>
+    <div class="meta"><strong>DATE:</strong> {{ date }}</div>
+    <div class="meta"><strong>TARGET:</strong> {{ target }}</div>
+    <div class="meta"><strong>SCAN TYPE:</strong> {{ scan_type }}</div>
+    {% if risk_score > 0 %}
+    <div class="meta"><strong>AI RISK SCORE:</strong> {{ risk_score|int }}/1000 ({{ risk_level }})</div>
+    {% endif %}
+  </div>
+  <div>
+    <div class="confidential-tag">Confidential Document</div>
+    <div class="attention">
+      <b>Attention:</b> This document contains confidential and privileged information. Unauthorized disclosure, copying, or distribution is prohibited.
+    </div>
+  </div>
+  <div class="footer"><span>VulnScan Pro</span><span>AI-Powered Security Assessment</span></div>
+</div>
+
+<!-- TOC -->
+<div class="page">
+  <div class="bar-top"></div>
+  <h1>Contents</h1>
+  <ul class="toc-list">
+    <li><span>1. Confidentiality &amp; Disclaimer</span><span>3</span></li>
+    <li><span>2. Assessment Overview &amp; Scope</span><span>4</span></li>
+    <li><span>3. Executive Summary</span><span>5</span></li>
+    {% if report_type == 'full' %}
+    <li><span>4. Summary of Findings</span><span>6</span></li>
+    <li><span>5. Detailed Findings</span><span>7</span></li>
+    {% endif %}
+  </ul>
+  <div class="footer"><span>Confidential Document</span><span>VulnScan Pro</span></div>
+  <div class="bar-bottom"></div>
+</div>
+
+<!-- CONFIDENTIALITY & OVERVIEW -->
+<div class="page">
+  <div class="bar-top"></div>
+  <h1>1. Confidentiality &amp; Disclaimer</h1>
+  <p><strong>Confidentiality Statement:</strong> This document and its contents are proprietary and confidential. Unauthorized distribution, copying, or disclosure is strictly prohibited.</p>
+  <p><strong>Disclaimer:</strong> This assessment was conducted using automated scanning tools with AI-powered analysis. Findings represent a point-in-time assessment. This report reflects findings as of: <strong>{{ date }}</strong>.</p>
+
+  <h1 style="margin-top: 30px;">2. Assessment Overview &amp; Scope</h1>
+  <p>This internal network assessment evaluated the security posture of <strong>{{ target }}</strong> using <strong>{{ scan_type }}</strong>.</p>
+  
+  <table class="data">
+    <tr><th>Item</th><th>Details</th></tr>
+    <tr><td><strong>Target Network</strong></td><td>{{ target }}</td></tr>
+    <tr><td><strong>Scan Type</strong></td><td>{{ scan_type }}</td></tr>
+    <tr><td><strong>Quality of Detection</strong></td><td>{{ qod|upper }}</td></tr>
+    <tr><td><strong>Methodology</strong></td><td>PTES, NIST SP 800-115, CIS Controls</td></tr>
+  </table>
+  
+  <div class="footer"><span>Confidential Document</span><span>VulnScan Pro</span></div>
+  <div class="page-number">3</div>
+  <div class="bar-bottom"></div>
+</div>
+
+<!-- EXECUTIVE SUMMARY -->
+<div class="page">
+  <div class="bar-top"></div>
+  <h1>3. Executive Summary</h1>
+  <p>{{ executive_summary | safe }}</p>
+  
+  {% if risk_score > 0 %}
+  <div style="margin-top:20px; padding:15px; background:#f8f9fa; border-left:4px solid var(--accent); font-size:10pt;">
+    <strong>AI Risk Score:</strong> {{ risk_score|int }}/1000 <br>
+    <strong>Risk Level:</strong> {{ risk_level }} <br>
+    <strong>Business Impact:</strong> {{ business_impact }}
+  </div>
+  {% endif %}
+
+  <h3>Key Strengths &amp; Weaknesses</h3>
+  {{ strengths_weaknesses | safe }}
+  
+  <div class="footer"><span>Confidential Document</span><span>VulnScan Pro</span></div>
+  <div class="page-number">4</div>
+  <div class="bar-bottom"></div>
+</div>
+
+{% if report_type == 'full' %}
+<!-- SUMMARY OF FINDINGS -->
+<div class="page">
+  <div class="bar-top"></div>
+  <h1>4. Summary of Findings</h1>
+  
+  <table class="data">
+    <tr><th>Severity</th><th>Count</th><th>Definition</th></tr>
+    <tr><td><span class="sev-cell sev-critical">Critical</span></td><td style="text-align:center; font-weight:700;">{{ severity_counts.Critical }}</td><td>Immediate threat to key business processes</td></tr>
+    <tr><td><span class="sev-cell sev-high">High</span></td><td style="text-align:center; font-weight:700;">{{ severity_counts.High }}</td><td>Direct threat to key business processes</td></tr>
+    <tr><td><span class="sev-cell sev-medium">Medium</span></td><td style="text-align:center; font-weight:700;">{{ severity_counts.Medium }}</td><td>Indirect or partial threat</td></tr>
+    <tr><td><span class="sev-cell sev-low">Low</span></td><td style="text-align:center; font-weight:700;">{{ severity_counts.Low }}</td><td>No direct threat; may be chained</td></tr>
+    <tr><td><span class="sev-cell sev-info">Info</span></td><td style="text-align:center; font-weight:700;">{{ severity_counts.Informational }}</td><td>Observation, not a vulnerability</td></tr>
+  </table>
+
+  <h3>High-Level Recommendations</h3>
+  <div class="action-box" style="border-left-color: var(--critical);">
+    <h4 style="color: var(--critical);">Immediate Actions (30 Days)</h4>
+    <ul>
+      {% if severity_counts.Critical > 0 %}<li>Address all <strong>{{ severity_counts.Critical }} Critical</strong> findings immediately.</li>{% endif %}
+      {% if severity_counts.High > 0 %}<li>Remediate <strong>{{ severity_counts.High }} High</strong> severity findings.</li>{% endif %}
+      <li>Apply emergency patches to all exposed services.</li>
+    </ul>
+  </div>
+  <div class="action-box" style="border-left-color: var(--high);">
+    <h4 style="color: var(--high);">Short-Term Actions (60 Days)</h4>
+    <ul>
+      <li>Implement network segmentation between critical VLANs.</li>
+      <li>Deploy internal vulnerability scanning on a weekly schedule.</li>
+    </ul>
+  </div>
+
+  <div class="footer"><span>Confidential Document</span><span>VulnScan Pro</span></div>
+  <div class="page-number">5</div>
+  <div class="bar-bottom"></div>
+</div>
+
+<!-- DETAILED FINDINGS -->
+<div class="page">
+  <div class="bar-top"></div>
+  <h1>5. Detailed Findings</h1>
+  
+  {% if findings_list %}
+    {% for finding in findings_list %}
+    <div class="finding-box">
+      <div class="finding-header" style="background: {% if finding.get('severity') == 'Critical' %}var(--critical){% elif finding.get('severity') == 'High' %}var(--high){% elif finding.get('severity') == 'Medium' %}var(--medium){% else %}var(--low){% endif %};">
+        <span>{{ finding.get('id', 'FIND') }}: {{ finding.get('title', 'Untitled') }}</span>
+        <span>{{ finding.get('severity', 'N/A') }}</span>
+      </div>
+      <div class="finding-body">
+        <div class="finding-meta">
+          <span><strong>Target:</strong> {{ target }}</span>
+        </div>
+        <p><strong>Description:</strong> {{ finding.get('description', 'N/A') }}</p>
+        <p><strong>Impact:</strong> {{ finding.get('impact', 'N/A') }}</p>
+        <p><strong>Remediation:</strong> {{ finding.get('remediation', 'Apply patches and validate.') }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="color:#666; font-style:italic;">No detailed findings were generated for this scan.</p>
+  {% endif %}
+  
+  <div class="footer"><span>Confidential Document</span><span>VulnScan Pro</span></div>
+  <div class="page-number">6</div>
+  <div class="bar-bottom"></div>
+</div>
+{% endif %}
+
+<!-- CLOSING -->
+<div class="page" style="display:flex; align-items:center; justify-content:center;">
+  <div class="bar-top"></div>
+  <div style="text-align:center;">
+    <h2>End of Report</h2>
+    <p><strong>VulnScan Pro</strong> — AI-Powered Security Assessment Platform</p>
+    <p style="color:var(--muted); font-size:9pt;">{{ scan_name }} | {{ target }} | {{ date }}</p>
+    {% if risk_score > 0 %}
+    <p style="font-size:10pt; margin-top:15px;"><strong>AI Risk Score:</strong> {{ risk_score|int }}/1000 ({{ risk_level }})</p>
+    {% endif %}
+  </div>
+  <div class="bar-bottom"></div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VulnScan Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #1e222d; 
+            --bg-panel: rgba(30, 34, 45, 0.85);
+            --text-main: #dcd7ba; 
+            --text-muted: #7a8292;
+            --accent-purple: #957fb8; 
+            --accent-blue: #7e9cd8;
+            --accent-green: #98bb6c; 
+            --accent-red: #e46876; 
+            --accent-yellow: #e6c384;
+            --border: rgba(255,255,255,0.05);
+        }
+        * { box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #d2b9b0 0%, #a5a3bd 30%, #677b96 70%, #3a4a68 100%);
+            background-attachment: fixed;
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 0; 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+        
+        .top-bar { height: 36px; background: var(--bg-panel); backdrop-filter: blur(20px); display: flex; justify-content: space-between; align-items: center; padding: 0 16px; font-size: 0.75rem; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        .workspace-dots { display: flex; gap: 8px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.1); }
+        .dot.active { background: var(--accent-purple); box-shadow: 0 0 8px var(--accent-purple); }
+        
+        .panel { background: var(--bg-panel); backdrop-filter: blur(24px); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3); overflow: hidden; }
+        .panel-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.85rem; font-weight: 600; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; }
+        .panel-body { padding: 16px; }
+        
+        .system-stat { display: flex; align-items: center; gap: 12px; padding: 8px 0; font-size: 0.85rem; }
+        .system-stat i { width: 20px; text-align: center; color: var(--text-muted); }
+        
+        .btn-soft { background: rgba(255,255,255,0.03); color: var(--text-main); border: 1px solid var(--border); padding: 12px; border-radius: 12px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-soft:hover { background: rgba(255,255,255,0.08); }
+        .btn-primary { background: var(--accent-purple); color: #111; border: none; }
+        .btn-primary:hover { background: #a68cc9; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
+        
+        table { width: 100%; text-align: left; border-collapse: collapse; font-size: 0.85rem; }
+        th { color: var(--text-muted); font-weight: 500; padding: 12px 8px; border-bottom: 1px solid var(--border); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+        td { padding: 12px 8px; border-bottom: 1px solid rgba(255,255,255,0.02); }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+        .bg-critical { background: rgba(228,104,118,0.15); color: var(--accent-red); }
+        .bg-high { background: rgba(230,195,132,0.15); color: var(--accent-yellow); }
+        .bg-medium { background: rgba(230,195,132,0.15); color: var(--accent-yellow); }
+        .bg-low { background: rgba(126,156,216,0.15); color: var(--accent-blue); }
+        
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 100; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--bg-dark); border: 1px solid var(--border); width: 100%; max-width: 620px; border-radius: 16px; animation: fadeIn 0.2s ease-out; overflow: hidden; }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; }
+        
+        .input-field { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 12px; border-radius: 8px; color: var(--text-main); margin-top: 4px; outline: none; font-family: 'Inter', sans-serif; }
+        .input-field:focus { border-color: var(--accent-purple); }
+        select.input-field { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23dcd7ba%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 12px top 50%; background-size: 10px auto; }
+        select.input-field option { background-color: var(--bg-dark); color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="workspace-dots"><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <div class="flex items-center gap-4 mono">
+            <span><i class="fa-solid fa-brain mr-1 text-[var(--accent-purple)]"></i> {{ active_provider|upper if active_provider else 'OFFLINE' }}</span>
+            <span><i class="fa-solid fa-terminal mr-1"></i> {{ history|length }} SCANS</span>
+            <span id="clock-top">00:00</span>
+        </div>
+    </div>
+
+    <div class="flex-grow max-w-[1400px] mx-auto w-full p-6 grid grid-cols-1 md:grid-cols-12 gap-6 animate-fade">
+        <div class="md:col-span-3 flex flex-col gap-6">
+            <div class="panel p-6 flex flex-col items-center justify-center text-center">
+                <div class="w-24 h-24 rounded-full bg-gradient-to-tr from-[var(--accent-purple)] to-[var(--accent-blue)] mb-4 flex items-center justify-center text-white text-3xl">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white">VulnScan</h2>
+                <p class="text-xs text-[var(--text-muted)] mt-1">Command Mode</p>
+            </div>
+
+            <div class="panel p-4 flex flex-col gap-2">
+                <div class="system-stat"><i class="fa-solid fa-microchip text-[var(--accent-purple)]"></i> <span>Engine Online</span></div>
+                <div class="system-stat"><i class="fa-solid fa-terminal text-[var(--accent-green)]"></i> <span>Custom Commands</span></div>
+                <div class="system-stat"><i class="fa-solid fa-clock text-[var(--accent-green)]"></i> <span>Uptime: <span id="uptime">00:00:00</span></span></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header"><span><i class="fa-solid fa-eye mr-2"></i> CVE Watchlist</span></div>
+                <div class="p-4">
+                    <form onsubmit="addWatchlist(event)" class="flex gap-2 mb-4">
+                        <input type="text" id="watchInput" placeholder="CVE-2024-..." class="input-field text-xs">
+                        <button type="submit" class="btn-soft btn-primary py-2 text-xs" style="padding: 8px 12px;">Track</button>
+                    </form>
+                    <div class="space-y-2 max-h-40 overflow-y-auto" id="watchlistContainer">
+                        {% for w in watchlist %}
+                        <div class="flex justify-between items-center bg-[rgba(0,0,0,0.2)] border border-[var(--border)] p-2 rounded" id="watch-{{ w.cve_id }}">
+                            <span class="font-mono text-xs text-[var(--accent-blue)]">{{ w.cve_id }}</span>
+                            <button onclick="removeWatchlist('{{ w.cve_id }}')" class="text-[var(--accent-red)] hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <a href="/guide" class="btn-soft w-full mb-2 border-[var(--accent-blue)] text-[var(--accent-blue)] hover:bg-[var(--accent-blue)] hover:text-black">
+                <i class="fa-solid fa-book"></i> Command Guide
+            </a>
+            <a href="/settings" class="btn-soft w-full"><i class="fa-solid fa-gear"></i> Configuration</a>
+        </div>
+
+        <div class="md:col-span-9 flex flex-col gap-6">
+            <div class="panel p-10 flex flex-col items-center justify-center text-center" style="min-height: 250px;">
+                <h1 class="text-7xl mono font-semibold text-white tracking-widest" id="big-clock">00:00</h1>
+                <p class="text-sm text-[var(--text-muted)] mt-2 uppercase tracking-[0.3em]">Command Console</p>
+                <div class="flex gap-4 mt-8 flex-wrap justify-center">
+                    <button id="networkBtn" class="btn-soft btn-primary px-6 py-3"><i class="fa-solid fa-network-wired"></i> Network Scan</button>
+                    <button id="webBtn" class="btn-soft px-6 py-3 bg-[rgba(255,255,255,0.1)] text-white border-none"><i class="fa-solid fa-globe"></i> Website Scan</button>
+                    <button id="emailSecBtn" class="btn-soft px-6 py-3 border-[var(--accent-purple)] text-[var(--accent-purple)]"><i class="fa-solid fa-envelope-circle-check"></i> Email Security</button>
+                </div>
+            </div>
+
+            <div class="panel flex-grow flex flex-col">
+                <div class="panel-header">
+                    <span><i class="fa-solid fa-history mr-2"></i> Recent Scans</span>
+                    {% if history|length > 0 %}
+                    <button onclick="showDeleteAllModal()" class="text-[var(--accent-red)] hover:text-white text-xs border border-[var(--accent-red)] px-2 py-1 rounded bg-transparent">Clear All</button>
+                    {% endif %}
+                </div>
+                <div class="overflow-x-auto flex-grow">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Target</th>
+                                <th>Type</th>
+                                <th>Severity</th>
+                                <th>Score</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for h in history %}
+                            <tr>
+                                <td><div class="font-semibold text-white">{{ h[1] }}</div><div class="text-xs text-[var(--text-muted)] mono">{{ h[2] }}</div></td>
+                                <td class="text-[var(--text-muted)] text-xs mono">{{ h[4] }}</td>
+                                <td><span class="badge {% if h[5] == 'Critical' %}bg-critical{% elif h[5] == 'High' %}bg-high{% elif h[5] == 'Medium' %}bg-medium{% else %}bg-low{% endif %}">{{ h[5] }}</span></td>
+                                <td class="mono text-[var(--accent-blue)] font-semibold">{{ h[10]|int if h[10] and h[10] > 0 else '--' }}</td>
+                                <td class="text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <a href="/view_scan/{{ h[0] }}" class="w-8 h-8 rounded-lg bg-[rgba(255,255,255,0.05)] flex items-center justify-center text-[var(--text-main)] hover:bg-[var(--accent-blue)] hover:text-white" title="View"><i class="fa-solid fa-eye text-xs"></i></a>
+                                        <button onclick="confirmDeleteScan({{ h[0] }}, '{{ h[1]|e }}')" class="w-8 h-8 rounded-lg bg-[rgba(255,255,255,0.05)] flex items-center justify-center text-[var(--accent-red)] hover:bg-[var(--accent-red)] hover:text-white" title="Delete"><i class="fa-solid fa-trash text-xs"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not history %}
+                            <tr><td colspan="5" class="text-center py-10 text-[var(--text-muted)] text-sm">No scans yet. Choose a scan type above.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="top-bar mt-auto border-t border-b-0">
+        <div class="flex gap-4"><span><i class="fa-brands fa-linux mr-1"></i> System Ready</span></div>
+        <div class="flex items-center gap-4 mono"><span id="clock-bottom">00:00</span></div>
+    </div>
+
+    <!-- NETWORK MODAL -->
+    <div id="networkModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header text-[var(--accent-purple)]">
+                <span><i class="fa-solid fa-network-wired mr-2"></i> Network Scan Command</span>
+                <button onclick="document.getElementById('networkModal').classList.remove('active')" class="text-gray-400 hover:text-white text-xl leading-none">&times;</button>
+            </div>
+            <form onsubmit="executeScan(event, this)" method="POST" class="modal-body space-y-4">
+                <div>
+                    <label class="text-xs text-[var(--text-muted)] block mb-1">Scan Name</label>
+                    <input type="text" name="scan_name" required class="input-field" placeholder="e.g. Nmap Internal Scan">
+                </div>
+                <div>
+                    <label class="text-xs text-[var(--text-muted)] block mb-1">Target IP / Domain</label>
+                    <input type="text" name="target" id="net_target" class="input-field mono" placeholder="192.168.0.77" oninput="buildNetCmd()">
+                </div>
+                <div>
+                    <label class="text-xs text-[var(--text-muted)] block mb-1">Tool</label>
+                    <select name="scan_type" id="net_tool" required class="input-field" onchange="updateNetFlags()">
+                        <option value="nmap">nmap</option>
+                        <option value="nuclei">nuclei</option>
+                        <option value="dnsenum">dnsenum</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-[var(--text-muted)] block mb-1">Flags / Options</label>
+                    <select id="net_flags" class="input-field" onchange="buildNetCmd()"></select>
+                </div>
+                <div>
+                    <label class="text-xs text-[var(--text-muted)] block mb-1">Command (Editable)</label>
+                    <textarea name="command" id="net_command" rows="3" required class="input-field mono text-xs" oninput="this.dataset.edited='true'"></textarea>
+                </div>
+                <label class="flex items-start gap-2 text-xs text-[var(--text-muted)]">
+                    <input type="checkbox" required class="mt-0.5 accent-[var(--accent-purple)]">
+                    <span>I confirm I have explicit authorization to run this command.</span>
+                </label>
+                <button type="submit" class="btn-soft w-full bg-[var(--accent-purple)] text-white font-semibold hover:bg-[#a68cc9] mt-4">Execute</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- WEB MODAL -->
+    <div id="webModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header text-[var(--accent-purple)]">
+                <span><i class="fa-solid fa-globe mr-2"></i> Website Scan Command</span>
+                <button onclick="document.getElementById('webModal').classList.remove('active')" class="text-gray-400 hover:text-white text-xl leading-none">&times;</button>
+            </div>
+            <form onsubmit="executeScan(event, this)" method="POST" class="modal-body space-y-4">
+                <div>
+                    <label class="text-xs text-[var(--text-muted)] block mb-1">Scan Name</label>
+                    <input type="text" name="scan_name" required class="input-field" placeholder="e.g. SQLMap test on login.asp">
+                </div>
+                <div>
+                    <label class="text-xs text-[var(--text-muted)] block mb-1">Target URL</label>
+                    <input type="text" name="target" id="web_target" class="input-field mono" placeholder="http://testasp.vulnweb.com/login.asp" oninput="buildWebCmd()">
+                </div>
+                <div>
+                    <label class="text-xs text-[var(--text-muted)] block mb-1">Tool</label>
+                    <select name="scan_type" id="web_tool" required class="input-field" onchange="updateWebFlags()">
+                        <option value="sqlmap">SQLi (SQLMap)</option>
+                        <option value="dalfox">XSS (Dalfox)</option>
+                        <option value="nuclei">Nuclei (Templates)</option>
+                        <option value="whatweb">WhatWeb (Fingerprint)</option>
+                        <option value="dnsenum">DNS Enum</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-[var(--text-muted)] block mb-1">Flags / Options</label>
+                    <select id="web_flags" class="input-field" onchange="buildWebCmd()"></select>
+                </div>
+                <div>
+                    <label class="text-xs text-[var(--text-muted)] block mb-1">Command (Editable)</label>
+                    <textarea name="command" id="web_command" rows="3" required class="input-field mono text-xs" oninput="this.dataset.edited='true'"></textarea>
+                </div>
+                <label class="flex items-start gap-2 text-xs text-[var(--text-muted)]">
+                    <input type="checkbox" required class="mt-0.5 accent-[var(--accent-purple)]">
+                    <span>I confirm I have explicit authorization to run this command.</span>
+                </label>
+                <button type="submit" class="btn-soft w-full bg-[var(--accent-purple)] text-white font-semibold hover:bg-[#a68cc9] mt-4">Execute</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Email security modal -->
+    <div id="emailModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header text-[var(--accent-purple)]"><span><i class="fa-solid fa-envelope-circle-check mr-2"></i> Email Security Check</span><button onclick="document.getElementById('emailModal').classList.remove('active')" class="text-gray-400 hover:text-white text-xl leading-none">&times;</button></div>
+            <form onsubmit="checkEmailSec(event)" class="modal-body space-y-4">
+                <div><label class="text-xs text-[var(--text-muted)] block mb-1">Domain</label><input type="text" id="emailTarget" required class="input-field mono" placeholder="domain.com"></div>
+                <button type="submit" class="btn-soft w-full bg-[var(--accent-purple)] text-white font-semibold">Analyze DNS</button>
+            </form>
+            <div id="emailResults" class="p-4 hidden border-t border-[var(--border)]"></div>
+        </div>
+    </div>
+
+    <!-- Delete modals -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-content border-[var(--accent-red)]">
+            <div class="modal-header text-[var(--accent-red)]"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Confirm Deletion</div>
+            <div class="modal-body"><p class="text-sm mb-6" id="deleteModalMessage">Are you sure?</p><div class="flex gap-4"><button onclick="document.getElementById('deleteModal').classList.remove('active')" class="btn-soft flex-1">Cancel</button><button id="confirmDeleteBtn" class="btn-soft flex-1 bg-[var(--accent-red)] text-white">Delete</button></div></div>
+        </div>
+    </div>
+    <div id="deleteAllModal" class="modal-overlay">
+        <div class="modal-content border-[var(--accent-red)]">
+            <div class="modal-header text-[var(--accent-red)]"><i class="fa-solid fa-trash mr-2"></i> Purge Database</div>
+            <div class="modal-body"><p class="text-sm mb-6">Delete ALL scans? Cannot be undone.</p><div class="flex gap-4"><button onclick="document.getElementById('deleteAllModal').classList.remove('active')" class="btn-soft flex-1">Cancel</button><button id="confirmDeleteAllBtn" class="btn-soft flex-1 bg-[var(--accent-red)] text-white">Purge</button></div></div>
+        </div>
+    </div>
+
+    <div id="loading" class="hidden fixed inset-0 bg-black/60 backdrop-blur-md flex flex-col items-center justify-center z-[999]">
+        <div class="w-12 h-12 border-4 border-[var(--accent-purple)] border-t-transparent rounded-full animate-spin mb-4"></div>
+        <div class="text-[var(--text-main)] text-lg">Running Command...</div>
+    </div>
+
+    <script>
+        document.getElementById("networkBtn").onclick = () => {
+            document.getElementById('networkModal').classList.add('active');
+            updateNetFlags();
+        };
+        document.getElementById("webBtn").onclick = () => {
+            document.getElementById('webModal').classList.add('active');
+            updateWebFlags();
+        };
+        document.getElementById("emailSecBtn").onclick = () => document.getElementById("emailModal").classList.add("active");
+
+        window.onclick = (e) => {
+            if (e.target.classList.contains("modal-overlay")) e.target.classList.remove("active");
+        };
+
+        async function executeScan(event, form) {
+            event.preventDefault();
+            document.getElementById("loading").classList.remove("hidden");
+            form.closest('.modal-overlay').classList.remove('active');
+
+            try {
+                const formData = new FormData(form);
+                const response = await fetch('/dashboard', { method: 'POST', body: formData });
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    window.location.reload();
+                }
+            } catch (error) {
+                alert("Error executing scan: " + error.message);
+                document.getElementById("loading").classList.add("hidden");
+            }
+        }
+
+        function buildNetCmd() {
+            const cmdBox = document.getElementById('net_command');
+            if (cmdBox.dataset.edited === 'true') return; 
+            const target = document.getElementById('net_target').value || '<target>';
+            const tool = document.getElementById('net_tool').value;
+            const flags = document.getElementById('net_flags').value;
+            cmdBox.value = `${tool} ${flags} ${target}`;
+        }
+
+        function buildWebCmd() {
+            const cmdBox = document.getElementById('web_command');
+            if (cmdBox.dataset.edited === 'true') return;
+
+            const target = document.getElementById('web_target').value || '<target>';
+            const tool = document.getElementById('web_tool').value;
+            const flags = document.getElementById('web_flags').value;
+            
+            let cmd = "";
+            if (tool === 'nuclei') cmd = `nuclei -u "${target}" ${flags}`;
+            else if (tool === 'sqlmap') cmd = `python C:\\Tools\\sqlmap\\sqlmap.py -u "${target}" ${flags}`;
+            else if (tool === 'dalfox') cmd = `dalfox url "${target}" ${flags}`;
+            else if (tool === 'whatweb') cmd = `ruby C:\\Users\\vishw\\Downloads\\whatweb\\whatweb "${target}" ${flags}`;
+            else if (tool === 'dnsenum') cmd = `perl C:\\Tools\\dnsenum\\dnsenum.pl ${target} ${flags}`;
+            else cmd = `${tool} ${flags} ${target}`;
+
+            cmdBox.value = cmd;
+        }
+
+        const netFlagOptions = {
+            'nmap': [
+                { v: '-sT -Pn -v', l: 'TCP Basic (-sT -Pn -v)' },
+                { v: '-sT -sV -Pn -v', l: 'Version Detection (-sT -sV -Pn -v)' },
+                { v: '-sT -sV -Pn -v -A', l: 'Aggressive (-sT -sV -Pn -v -A)' },
+                { v: '-sU -Pn', l: 'UDP Scan (-sU -Pn)' },
+                { v: '--script vuln -sT -sV -Pn', l: 'Vuln Scripts (--script vuln)' }
+            ],
+            'nuclei': [
+                { v: '-tags cve -silent', l: 'CVE Templates (-tags cve)' },
+                { v: '-tags exposure,misconfig -silent', l: 'Exposures & Misconfigs' },
+                { v: '-tags panel -silent', l: 'Admin Panels' }
+            ],
+            'dnsenum': [
+                { v: '--threads 5', l: 'Standard Enum' },
+                { v: '--threads 10', l: 'Aggressive Enum' }
+            ]
+        };
+
+        function updateNetFlags() {
+            const tool = document.getElementById('net_tool').value;
+            const flagSelect = document.getElementById('net_flags');
+            flagSelect.innerHTML = '';
+            (netFlagOptions[tool] || []).forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt.v;
+                el.textContent = opt.l;
+                flagSelect.appendChild(el);
+            });
+            document.getElementById('net_command').dataset.edited = 'false';
+            buildNetCmd();
+        }
+
+        const webFlagOptions = {
+            'nuclei': [
+                { v: '-tags cve -silent', l: 'CVE Templates (-tags cve)' },
+                { v: '-tags exposure,misconfig -silent', l: 'Exposures & Misconfigs' },
+                { v: '-tags panel -silent', l: 'Admin Panels' },
+                { v: '-dast -silent', l: 'DAST Fuzzing (-dast)' },
+                { v: '-jsonl -silent', l: 'JSON Output (Full Scan)' }
+            ],
+            'sqlmap': [
+                { v: '--batch --level=1 --risk=1', l: 'Quick Scan' },
+                { v: '--batch --level=3 --risk=2 --dbs', l: 'Deep Scan (Enumerate DBs)' },
+                { v: '--batch --forms --crawl=2', l: 'Crawl & Scan Forms' }
+            ],
+            'dalfox': [
+                { v: '--silence', l: 'Basic Reflection Scan' },
+                { v: '--deep-domxss --silence', l: 'Deep DOM XSS' },
+                { v: '--method POST --data "u=test&p=test" --silence', l: 'Test POST Form' }
+            ],
+            'whatweb': [
+                { v: '--color=never', l: 'Passive (Standard)' },
+                { v: '--aggression=3 --color=never', l: 'Aggressive Scan' }
+            ],
+            'dnsenum': [
+                { v: '--threads 5', l: 'Standard Enum' }
+            ]
+        };
+
+        function updateWebFlags() {
+            const tool = document.getElementById('web_tool').value;
+            const flagSelect = document.getElementById('web_flags');
+            flagSelect.innerHTML = '';
+            (webFlagOptions[tool] || []).forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt.v;
+                el.textContent = opt.l;
+                flagSelect.appendChild(el);
+            });
+            document.getElementById('web_command').dataset.edited = 'false';
+            buildWebCmd();
+        }
+
+        async function addWatchlist(e) {
+            e.preventDefault();
+            const cve = document.getElementById("watchInput").value.trim();
+            if (!cve) return;
+            const res = await fetch("/api/watchlist/add", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cve_id: cve }) });
+            if (res.ok) location.reload();
+            else alert("Failed to add to watchlist.");
+        }
+
+        async function removeWatchlist(cve) {
+            await fetch(`/api/watchlist/remove/${cve}`, { method: "POST" });
+            document.getElementById(`watch-${cve}`).remove();
+        }
+
+        async function checkEmailSec(e) {
+            e.preventDefault();
+            const target = document.getElementById("emailTarget").value;
+            const resDiv = document.getElementById("emailResults");
+            resDiv.classList.remove("hidden");
+            resDiv.innerHTML = '<div class="text-center font-mono text-xs text-[var(--accent-purple)] py-4"><i class="fa-solid fa-spinner fa-spin"></i> Querying DNS...</div>';
+            const res = await fetch("/api/email_security", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ target }) });
+            const data = await res.json();
+            if (data.success) {
+                resDiv.innerHTML = `<div class="space-y-3 font-mono text-xs p-2">
+                    <div><span class="text-[var(--text-muted)]">SPF:</span> <span class="text-[var(--accent-green)] break-all">${data.data.spf}</span></div>
+                    <div><span class="text-[var(--text-muted)]">DMARC:</span> <span class="text-[var(--accent-yellow)] break-all">${data.data.dmarc}</span></div>
+                    <div><span class="text-[var(--text-muted)]">DKIM:</span> <span class="text-[var(--accent-blue)] break-all">${data.data.dkim}</span></div>
+                </div>`;
+            } else {
+                resDiv.innerHTML = `<div class="text-red-500 font-mono text-xs p-2">${data.error}</div>`;
+            }
+        }
+
+        let pendingId = null;
+        function confirmDeleteScan(id, name) {
+            pendingId = id;
+            document.getElementById("deleteModalMessage").innerHTML = `Delete scan <strong>${name}</strong>?`;
+            document.getElementById("deleteModal").classList.add("active");
+        }
+        
+        document.getElementById("confirmDeleteBtn").onclick = async () => {
+            if (!pendingId) return;
+            const id = pendingId;
+            document.getElementById("deleteModal").classList.remove("active");
+            document.getElementById("loading").classList.remove("hidden");
+            try {
+                const res = await fetch(`/delete_scan/${id}`, { method: "POST" });
+                const data = await res.json();
+                if (data.success) location.reload();
+                else { alert(data.error); document.getElementById("loading").classList.add("hidden"); }
+            } catch (e) { alert(e.message); document.getElementById("loading").classList.add("hidden"); }
+        };
+
+        function showDeleteAllModal() { document.getElementById("deleteAllModal").classList.add("active"); }
+        document.getElementById("confirmDeleteAllBtn").onclick = async () => {
+            document.getElementById("deleteAllModal").classList.remove("active");
+            document.getElementById("loading").classList.remove("hidden");
+            try {
+                const res = await fetch("/delete_all_scans", { method: "POST" });
+                const data = await res.json();
+                if (data.success) location.reload();
+                else { alert(data.error); document.getElementById("loading").classList.add("hidden"); }
+            } catch (e) { alert(e.message); document.getElementById("loading").classList.add("hidden"); }
+        };
+
+        function updateClock() {
+            const t = new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" });
+            ["big-clock","clock-top","clock-bottom"].forEach(id => {
+                const el = document.getElementById(id); if (el) el.textContent = t;
+            });
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        let sec = 0;
+        setInterval(() => {
+            sec++;
+            const el = document.getElementById("uptime");
+            if (el) {
+                const h = String(Math.floor(sec/3600)).padStart(2,"0");
+                const m = String(Math.floor((sec%3600)/60)).padStart(2,"0");
+                const s = String(sec%60).padStart(2,"0");
+                el.textContent = `${h}:${m}:${s}`;
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

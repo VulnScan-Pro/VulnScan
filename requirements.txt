@@ -1,0 +1,45 @@
+# =============================================================
+# VulnScan Pro — Core Python dependencies
+# =============================================================
+# Install with:  pip install -r requirements.txt
+# Python:        3.10+ (3.12 / 3.13 recommended)
+# =============================================================
+
+# --- Web framework ---
+flask>=3.0
+werkzeug>=3.0
+
+# --- HTTP & parsing ---
+requests>=2.31
+beautifulsoup4>=4.12
+
+# --- Nmap Python wrapper ---
+python-nmap>=0.7.1
+
+# --- DNS ---
+dnspython>=2.4
+
+# --- WHOIS ---
+python-whois>=0.9
+
+# --- .env loader ---
+python-dotenv>=1.0
+
+# --- API key encryption at rest ---
+cryptography>=42.0
+
+# --- AI providers ---
+groq>=0.9
+openai>=1.30
+anthropic>=0.30
+
+# =============================================================
+# OPTIONAL: PDF Report Generation
+# =============================================================
+# To generate PDF reports, you also need to install:
+#   pip install -r requirements-report.txt
+# 
+# IMPORTANT: On Windows, you MUST install GTK3 Runtime first,
+# or WeasyPrint will fail to load its DLLs.
+# Download: https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
+# =============================================================

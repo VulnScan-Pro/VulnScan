@@ -1,0 +1,12 @@
+# =============================================================
+# VulnScan Pro — PDF Report Dependencies
+# =============================================================
+# Install with:  pip install -r requirements-report.txt
+# 
+# REQUIRED SYSTEM DEPENDENCY: GTK3 Runtime
+# Download (Windows): https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
+# Linux: sudo apt install libpango-1.0-0 libgobject-2.0-0 libcairo2
+# =============================================================
+
+weasyprint>=62.0
+pillow>=10.0

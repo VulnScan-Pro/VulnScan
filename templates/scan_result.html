@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scan Results // VulnScan Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #1e222d;
+            --bg-panel: rgba(30, 34, 45, 0.85);
+            --text-main: #dcd7ba;
+            --text-muted: #7a8292;
+            --accent-purple: #957fb8;
+            --accent-blue: #7e9cd8;
+            --accent-green: #98bb6c;
+            --accent-red: #e46876;
+            --accent-yellow: #e6c384;
+            --border: rgba(255,255,255,0.05);
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #d2b9b0 0%, #a5a3bd 30%, #677b96 70%, #3a4a68 100%);
+            background-attachment: fixed;
+            color: var(--text-main); margin: 0; padding: 0; min-height: 100vh;
+            display: flex; flex-direction: column;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+        .top-bar { height: 36px; background: var(--bg-panel); backdrop-filter: blur(20px); display: flex; justify-content: space-between; align-items: center; padding: 0 16px; font-size: 0.75rem; border-bottom: 1px solid var(--border); }
+        .panel { background: var(--bg-panel); backdrop-filter: blur(24px); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3); overflow: hidden; }
+        .panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-size: 0.95rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .panel-body { padding: 20px; }
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+        .bg-critical { background: rgba(228,104,118,0.15); color: var(--accent-red); }
+        .bg-high { background: rgba(230,195,132,0.15); color: var(--accent-yellow); }
+        .bg-medium { background: rgba(230,195,132,0.15); color: var(--accent-yellow); }
+        .bg-low { background: rgba(126,156,216,0.15); color: var(--accent-blue); }
+        .bg-info { background: rgba(126,156,216,0.15); color: var(--accent-blue); }
+        .btn-soft { background: rgba(255,255,255,0.05); color: var(--text-main); border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;}
+        .btn-soft:hover { background: rgba(255,255,255,0.1); }
+        .input-field { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 10px; border-radius: 8px; color: var(--text-main); outline: none; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 100; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--bg-dark); border: 1px solid var(--border); width: 100%; max-width: 600px; border-radius: 16px; overflow: hidden; max-height: 85vh; overflow-y: auto; }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        summary { cursor: pointer; padding: 12px 16px; background: rgba(0,0,0,0.2); border-radius: 8px; font-weight: 600; color: var(--accent-purple); list-style: none; }
+        summary::-webkit-details-marker { display: none; }
+        summary::after { content: '\002B'; float: right; }
+        details[open] summary::after { content: '\2212'; }
+        pre { background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; font-size: 0.8rem; overflow-x: auto; color: #a9b1d6; font-family: 'JetBrains Mono', monospace; margin-top: 8px; white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="flex items-center gap-4">
+            <a href="/dashboard" class="text-[var(--text-muted)] hover:text-white"><i class="fa-solid fa-arrow-left mr-1"></i> Dashboard</a>
+            <span class="text-[var(--border)]">|</span>
+            <span class="text-[var(--accent-purple)] font-semibold"><i class="fa-solid fa-file-shield mr-1"></i> {{ scan_name }}</span>
+        </div>
+        <div class="flex items-center gap-4 mono text-[var(--text-muted)]">
+            <span id="active-provider-badge" class="text-[var(--accent-blue)] font-bold">{{ active_provider|upper if active_provider else 'NONE' }}</span>
+            <span>|</span>
+            <span id="clock">00:00</span>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto w-full p-6 space-y-6">
+
+        <!-- Top Action Bar -->
+        <div class="flex justify-between items-center flex-wrap gap-4">
+            <div class="flex gap-2">
+                <a href="/export/json/{{ scan_id }}" class="btn-soft text-xs border-[var(--accent-blue)] text-[var(--accent-blue)] hover:bg-[var(--accent-blue)] hover:text-black"><i class="fa-solid fa-file-code"></i> Export JSON</a>
+                <a href="/export/csv/{{ scan_id }}" class="btn-soft text-xs border-[var(--accent-green)] text-[var(--accent-green)] hover:bg-[var(--accent-green)] hover:text-black"><i class="fa-solid fa-file-csv"></i> Export CSV</a>
+            </div>
+            <div class="flex gap-2">
+                <a href="/download_report/{{ scan_id }}?type=exec" target="_blank" class="btn-soft text-xs border-[var(--accent-yellow)] text-[var(--accent-yellow)] hover:bg-[var(--accent-yellow)] hover:text-black"><i class="fa-solid fa-file-lines"></i> Exec Report</a>
+                <a href="/download_report/{{ scan_id }}?type=full" target="_blank" class="btn-soft text-xs bg-[rgba(228,104,118,0.1)] border-[var(--accent-red)] text-[var(--accent-red)] hover:bg-[var(--accent-red)] hover:text-white"><i class="fa-solid fa-file-pdf"></i> Full Report</a>
+            </div>
+        </div>
+
+        <!-- EXECUTED COMMAND -->
+        {% if result.command %}
+        <div class="panel border-l-4 border-l-[var(--accent-purple)]">
+            <div class="panel-header">
+                <span><i class="fa-solid fa-terminal mr-2 text-[var(--accent-purple)]"></i> Executed Command</span>
+                <span class="text-xs text-[var(--text-muted)] mono">rc = {{ result.return_code if result.return_code is defined else 'N/A' }}</span>
+            </div>
+            <div class="panel-body space-y-3">
+                <pre class="text-xs">{{ result.command }}</pre>
+                {% if result.target %}
+                <div class="text-xs text-[var(--text-muted)]">
+                    <i class="fa-solid fa-crosshairs mr-1"></i> Target: <span class="mono text-[var(--accent-blue)]">{{ result.target }}</span>
+                </div>
+                {% endif %}
+                {% if result.raw_output %}
+                <details class="mt-2">
+                    <summary>Raw output</summary>
+                    <pre>{{ result.raw_output }}</pre>
+                </details>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- AI RISK PANEL -->
+        <div class="panel border-l-4 {% if risk_level == 'Critical' %}border-l-[var(--accent-red)]{% elif risk_level == 'High' %}border-l-[var(--accent-yellow)]{% elif risk_level == 'Medium' %}border-l-[var(--accent-yellow)]{% else %}border-l-[var(--accent-blue)]{% endif %}">
+            <div class="panel-header">
+                <span><i class="fa-solid fa-gauge-high mr-2 text-[var(--accent-purple)]"></i> Risk Analysis</span>
+                <div class="flex items-center gap-3">
+                    {% if active_provider %}
+                    <span class="text-xs text-[var(--accent-blue)] bg-[rgba(126,156,216,0.1)] px-2 py-1 rounded-md">{{ active_provider|upper }}</span>
+                    {% else %}
+                    <span class="text-xs text-[var(--accent-red)] bg-[rgba(228,104,118,0.1)] px-2 py-1 rounded-md">NO PROVIDER</span>
+                    {% endif %}
+                    <button onclick="refreshAIRisk({{ scan_id }})" class="btn-soft text-xs"><i class="fa-solid fa-rotate"></i> Re-Analyze</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                {% if not active_provider %}
+                <div class="mb-4 p-3 bg-[rgba(228,104,118,0.1)] border border-[var(--accent-red)] text-[var(--accent-red)] text-sm rounded-lg">
+                    <i class="fa-solid fa-exclamation-triangle mr-2"></i> No AI provider configured. <a href="/settings" class="underline font-bold">Go to Settings</a>.
+                </div>
+                {% endif %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-[rgba(0,0,0,0.2)] border border-[var(--border)] rounded-xl p-5 text-center flex flex-col items-center justify-center">
+                        <div class="text-4xl font-bold mb-1 mono {% if risk_level == 'Critical' %}text-[var(--accent-red)]{% elif risk_level == 'High' %}text-[var(--accent-yellow)]{% elif risk_level == 'Medium' %}text-[var(--accent-yellow)]{% else %}text-[var(--accent-blue)]{% endif %}">
+                            {{ risk_score|int if risk_score else 0 }}
+                        </div>
+                        <div class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-3">Risk Score /1000</div>
+                        <div class="w-full bg-[rgba(255,255,255,0.1)] h-1.5 rounded-full overflow-hidden">
+                            <div class="h-full {% if risk_level == 'Critical' %}bg-[var(--accent-red)]{% elif risk_level == 'High' %}bg-[var(--accent-yellow)]{% elif risk_level == 'Medium' %}bg-[var(--accent-yellow)]{% else %}bg-[var(--accent-blue)]{% endif %}" style="width: {{ (risk_score/1000*100)|int if risk_score else 0 }}%;"></div>
+                        </div>
+                    </div>
+                    <div class="bg-[rgba(0,0,0,0.2)] border border-[var(--border)] rounded-xl p-5 flex flex-col justify-center items-center">
+                        <div class="text-2xl font-bold mb-1 {% if risk_level == 'Critical' %}text-[var(--accent-red)]{% elif risk_level == 'High' %}text-[var(--accent-yellow)]{% elif risk_level == 'Medium' %}text-[var(--accent-yellow)]{% else %}text-[var(--accent-blue)]{% endif %}">
+                            {{ risk_level if risk_level else 'UNKNOWN' }}
+                        </div>
+                        <div class="text-xs text-[var(--text-muted)] uppercase">Risk Level</div>
+                    </div>
+                    <div class="bg-[rgba(0,0,0,0.2)] border border-[var(--border)] rounded-xl p-5 flex flex-col justify-center">
+                        <div class="text-xs text-[var(--text-main)] mb-2 line-clamp-3">{{ business_impact if business_impact else 'No impact data.' }}</div>
+                        <div class="text-[10px] text-[var(--text-muted)] uppercase flex items-center gap-1"><i class="fa-solid fa-building"></i> Business Impact</div>
+                    </div>
+                    <div class="bg-[rgba(0,0,0,0.2)] border border-[var(--border)] rounded-xl p-3 flex flex-col gap-2 justify-center">
+                        <button onclick="showRemediation()" class="btn-soft w-full text-xs py-2 text-[var(--accent-green)] hover:bg-[var(--accent-green)] hover:text-black"><i class="fa-solid fa-clipboard-check"></i> Remediation</button>
+                        <button onclick="showAttackSurface()" class="btn-soft w-full text-xs py-2 text-[var(--accent-yellow)] hover:bg-[var(--accent-yellow)] hover:text-black"><i class="fa-solid fa-crosshairs"></i> Attack Surface</button>
+                        <button onclick="showRiskTrending()" class="btn-soft w-full text-xs py-2 text-[var(--accent-blue)] hover:bg-[var(--accent-blue)] hover:text-black"><i class="fa-solid fa-chart-line"></i> Trending</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DETECTED FINDINGS -->
+        {% if findings_list %}
+        <div class="panel border border-[var(--border)]">
+            <div class="panel-header">
+                <span><i class="fa-solid fa-bug mr-2 text-[var(--accent-red)]"></i> Detected Vulnerabilities &amp; Findings</span>
+                <span class="text-xs text-[var(--text-muted)] font-mono">{{ findings_list|length }} finding(s)</span>
+            </div>
+            <div class="panel-body space-y-4">
+                {% for finding in findings_list %}
+                <div class="bg-[rgba(0,0,0,0.2)] border border-[var(--border)] rounded-xl overflow-hidden">
+                    <div class="p-4 border-b border-[var(--border)] flex justify-between items-center"
+                         style="background: rgba({% if finding.severity == 'Critical' %}228,104,118{% elif finding.severity == 'High' %}230,195,132{% elif finding.severity == 'Medium' %}230,195,132{% else %}126,156,216{% endif %}, 0.1);">
+                        <div class="font-bold text-sm text-[var(--text-main)]">
+                            {{ finding.title }}
+                        </div>
+                        <span class="badge {% if finding.severity == 'Critical' %}bg-critical{% elif finding.severity == 'High' %}bg-high{% elif finding.severity == 'Medium' %}bg-medium{% elif finding.severity == 'Informational' %}bg-info{% else %}bg-low{% endif %}">
+                            {{ finding.severity }}
+                        </span>
+                    </div>
+                    <div class="p-4 space-y-3 text-sm">
+                        <div>
+                            <span class="text-[var(--text-muted)] font-bold text-xs uppercase">Description</span>
+                            <p class="text-[var(--text-main)] mt-1 whitespace-pre-line">{{ finding.description }}</p>
+                        </div>
+                        <div>
+                            <span class="text-[var(--text-muted)] font-bold text-xs uppercase">Impact</span>
+                            <p class="text-[var(--text-main)] mt-1">{{ finding.impact }}</p>
+                        </div>
+                        <div class="bg-[rgba(80,250,123,0.05)] border border-[var(--accent-green)]/30 rounded-lg p-3">
+                            <span class="text-[var(--accent-green)] font-bold text-xs uppercase">Remediation</span>
+                            <p class="text-[var(--text-main)] mt-1">{{ finding.remediation }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ENRICHED CVEs -->
+        {% if enriched_cves %}
+        <div class="panel">
+            <div class="panel-header">
+                <span><i class="fa-solid fa-database mr-2 text-[var(--accent-purple)]"></i> Enriched CVE Intelligence</span>
+                <span class="text-xs text-[var(--text-muted)]">NVD + EPSS</span>
+            </div>
+            <div class="panel-body space-y-3">
+                {% for item in enriched_cves %}
+                {% set cve = item.cve_id %}
+                {% set data = item.data %}
+                <div class="bg-[rgba(0,0,0,0.2)] border border-[var(--border)] rounded-xl p-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="font-bold text-[var(--accent-blue)] mono">{{ cve }}</span>
+                            {% if data and data.cvss_score %}
+                            <span class="badge {% if data.cvss_score >= 9.0 %}bg-critical{% elif data.cvss_score >= 7.0 %}bg-high{% elif data.cvss_score >= 4.0 %}bg-medium{% else %}bg-low{% endif %}">CVSS: {{ data.cvss_score }}</span>
+                            {% endif %}
+                            {% if data and data.epss_score is not none %}
+                            <span class="badge bg-low">EPSS: {{ (data.epss_score * 100)|round(2) }}%</span>
+                            {% endif %}
+                        </div>
+                        <a href="https://nvd.nist.gov/vuln/detail/{{ cve }}" target="_blank" class="text-xs text-[var(--accent-purple)] hover:underline">View on NVD <i class="fa-solid fa-external-link-alt"></i></a>
+                    </div>
+                    {% if data and data.description %}
+                    <p class="text-sm text-[var(--text-muted)] mt-2">{{ data.description }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Visualizations -->
+        <div class="panel">
+            <div class="panel-header"><i class="fa-solid fa-chart-line mr-2"></i> Scan Visualization</div>
+            <div class="panel-body">
+                <div class="text-center mb-8">
+                    <span class="text-5xl font-bold mono text-[var(--accent-red)]">{{ chart_data.cve_count }}</span>
+                    <p class="text-sm text-[var(--text-muted)] mt-2 uppercase tracking-widest">CVEs Detected</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% if chart_data.scan_category == 'network' %}
+                        {% if chart_data.port_states %}
+                        <div class="bg-[rgba(0,0,0,0.2)] border border-[var(--border)] rounded-xl p-4">
+                            <h4 class="text-center text-sm font-semibold mb-4 text-[var(--accent-blue)]">Port States</h4>
+                            <div class="h-56"><canvas id="portStatesChart"></canvas></div>
+                        </div>
+                        {% endif %}
+                        {% if chart_data.services %}
+                        <div class="bg-[rgba(0,0,0,0.2)] border border-[var(--border)] rounded-xl p-4">
+                            <h4 class="text-center text-sm font-semibold mb-4 text-[var(--accent-blue)]">Top Services</h4>
+                            <div class="h-56"><canvas id="servicesChart"></canvas></div>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat with Scan -->
+        <div class="panel">
+            <div class="panel-header"><span><i class="fa-solid fa-comments mr-2"></i> Chat with Scan Data</span></div>
+            <div class="p-4 h-64 overflow-y-auto space-y-3 flex flex-col" id="chatContainer">
+                {% for c in chats %}
+                <div class="p-2 rounded max-w-[80%] text-sm font-sans {% if c.role == 'user' %}self-end bg-[var(--accent-purple)] text-black{% else %}self-start bg-[rgba(0,0,0,0.3)] text-[var(--text-main)]{% endif %}">
+                    {{ c.content }}
+                </div>
+                {% endfor %}
+                {% if not chats %}
+                <div class="text-center text-xs text-[var(--text-muted)] italic my-auto">Ask questions about this scan's output.</div>
+                {% endif %}
+            </div>
+            <div class="p-4 border-t border-[var(--border)]">
+                <form onsubmit="sendChat(event)" class="flex gap-2">
+                    <select id="chatProvider" class="input-field w-32 text-xs" onchange="changeProvider(this.value)">
+                        <option value="groq" {% if active_provider == 'groq' %}selected{% endif %}>Groq</option>
+                        <option value="openai" {% if active_provider == 'openai' %}selected{% endif %}>OpenAI</option>
+                        <option value="deepseek" {% if active_provider == 'deepseek' %}selected{% endif %}>DeepSeek</option>
+                        <option value="anthropic" {% if active_provider == 'anthropic' %}selected{% endif %}>Claude</option>
+                        <option value="mistral" {% if active_provider == 'mistral' %}selected{% endif %}>Mistral</option>
+                    </select>
+                    <input type="text" id="chatInput" class="input-field flex-grow" placeholder="Type your question here..." autocomplete="off">
+                    <button type="submit" class="btn-soft bg-[var(--accent-purple)] text-black border-none px-6"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Raw Output (unified) -->
+        <div class="panel">
+            <div class="panel-header"><i class="fa-solid fa-code mr-2"></i> Raw Result</div>
+            <div class="panel-body space-y-2">
+                {% if result.findings is defined and result.findings %}
+                <details>
+                    <summary>Parsed findings ({{ result.findings|length }})</summary>
+                    <pre>{{ result.findings | tojson(indent=2) }}</pre>
+                </details>
+                {% endif %}
+                {% if result.CVE_Vulnerabilities is defined or result['CVE Vulnerabilities'] is defined %}
+                <details>
+                    <summary>CVE Vulnerabilities</summary>
+                    <div class="flex flex-wrap gap-2 p-2">
+                        {% for cve in result.get('CVE Vulnerabilities', []) %}
+                        <span class="badge bg-critical mono">{{ cve }}</span>
+                        {% endfor %}
+                    </div>
+                </details>
+                {% endif %}
+                {% for key, value in result.items() %}
+                    {% if key not in ('findings', 'CVE Vulnerabilities', 'raw_output', 'command', 'target', 'return_code') %}
+                    <details>
+                        <summary>{{ key }}</summary>
+                        <pre>{{ value | tojson(indent=2) if value is mapping else value }}</pre>
+                    </details>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="remediationModal" class="modal-overlay">
+        <div class="modal-content border-t-4 border-[var(--accent-green)]">
+            <div class="modal-header text-[var(--accent-green)]"><span><i class="fa-solid fa-clipboard-check mr-2"></i> Remediation</span><button onclick="closeModals()" class="text-2xl hover:text-white">&times;</button></div>
+            <div id="remediationContent" class="p-6 text-sm text-[var(--text-muted)]"><div class="text-center py-8"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Loading...</div></div>
+        </div>
+    </div>
+
+    <div id="attackSurfaceModal" class="modal-overlay">
+        <div class="modal-content border-t-4 border-[var(--accent-yellow)]">
+            <div class="modal-header text-[var(--accent-yellow)]"><span><i class="fa-solid fa-crosshairs mr-2"></i> Attack Surface</span><button onclick="closeModals()" class="text-2xl hover:text-white">&times;</button></div>
+            <div id="attackSurfaceContent" class="p-6 text-sm text-[var(--text-muted)]"><div class="text-center py-8"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Loading...</div></div>
+        </div>
+    </div>
+
+    <div id="riskTrendingModal" class="modal-overlay">
+        <div class="modal-content border-t-4 border-[var(--accent-blue)]">
+            <div class="modal-header text-[var(--accent-blue)]"><span><i class="fa-solid fa-chart-line mr-2"></i> Trending</span><button onclick="closeModals()" class="text-2xl hover:text-white">&times;</button></div>
+            <div id="riskTrendingContent" class="p-6 text-sm text-[var(--text-muted)]"><div class="text-center py-8"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Loading...</div></div>
+        </div>
+    </div>
+
+    <div class="top-bar mt-auto border-t border-b-0">
+        <div class="flex gap-4"><span><i class="fa-brands fa-linux mr-1"></i> System Ready</span></div>
+        <div class="flex items-center gap-4 mono"><span id="clock-bottom">00:00</span></div>
+    </div>
+
+    <script>
+        const chartData = {{ chart_data | tojson | safe }};
+        const textColor = '#dcd7ba';
+        const gridColor = 'rgba(255,255,255,0.05)';
+
+        window.onload = function () {
+            Chart.defaults.color = textColor;
+            Chart.defaults.borderColor = gridColor;
+            if (chartData.port_states && document.getElementById("portStatesChart")) {
+                new Chart(document.getElementById("portStatesChart"), {
+                    type: "doughnut",
+                    data: { labels: Object.keys(chartData.port_states), datasets: [{ data: Object.values(chartData.port_states), backgroundColor: ["#7e9cd8", "#e46876", "#e6c384", "#98bb6c"], borderWidth: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } }, cutout: "70%" }
+                });
+            }
+            if (chartData.services && document.getElementById("servicesChart")) {
+                new Chart(document.getElementById("servicesChart"), {
+                    type: "bar",
+                    data: { labels: Object.keys(chartData.services), datasets: [{ label: "Count", data: Object.values(chartData.services), backgroundColor: "#7e9cd8", borderRadius: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: gridColor } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } }
+                });
+            }
+        };
+
+        async function changeProvider(provider) {
+            try {
+                const res = await fetch('/settings/set_active', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({provider}) });
+                const data = await res.json();
+                if (data.success) {
+                    const badge = document.getElementById('active-provider-badge');
+                    if (badge) badge.textContent = provider.toUpperCase();
+                    const c = document.getElementById('chatContainer');
+                    c.innerHTML += `<div class="text-center text-xs text-[var(--text-muted)] italic my-2">Switched AI to ${provider.toUpperCase()}</div>`;
+                    c.scrollTop = c.scrollHeight;
+                } else { alert("Error: " + data.error); }
+            } catch (e) { alert("Failed to switch provider: " + e.message); }
+        }
+
+        async function sendChat(e) {
+            e.preventDefault();
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            const c = document.getElementById('chatContainer');
+            if (c.querySelector('.italic')) c.innerHTML = '';
+            c.innerHTML += `<div class="p-2 rounded max-w-[80%] text-sm self-end bg-[var(--accent-purple)] text-black">${msg}</div>`;
+            input.value = '';
+            c.scrollTop = c.scrollHeight;
+            const lid = 'chat-loading-' + Date.now();
+            c.innerHTML += `<div id="${lid}" class="p-2 rounded max-w-[80%] text-sm self-start bg-[rgba(0,0,0,0.3)] text-[var(--text-muted)]"><i class="fa-solid fa-spinner fa-spin"></i> Thinking...</div>`;
+            try {
+                const res = await fetch(`/api/chat/{{ scan_id }}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({message: msg}) });
+                const data = await res.json();
+                document.getElementById(lid).remove();
+                if (data.success) c.innerHTML += `<div class="p-2 rounded max-w-[80%] text-sm self-start bg-[rgba(0,0,0,0.3)] text-[var(--text-main)]">${data.response}</div>`;
+                else c.innerHTML += `<div class="p-2 rounded max-w-[80%] text-sm self-start bg-[var(--accent-red)] text-white">Error: ${data.error}</div>`;
+            } catch (e) {
+                document.getElementById(lid).remove();
+                c.innerHTML += `<div class="p-2 rounded max-w-[80%] text-sm self-start bg-[var(--accent-red)] text-white">Connection failed.</div>`;
+            }
+            c.scrollTop = c.scrollHeight;
+        }
+
+        async function refreshAIRisk(scanId) {
+            const btn = event.target.closest('button');
+            const og = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try {
+                const response = await fetch(`/api/ai_risk_analysis/${scanId}`);
+                const data = await response.json();
+                if (data.success) location.reload();
+                else { alert(data.error); btn.disabled = false; btn.innerHTML = og; }
+            } catch (e) { alert(e.message); btn.disabled = false; btn.innerHTML = og; }
+        }
+
+        function closeModals() { document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active')); }
+
+        async function showRemediation() {
+            document.getElementById('remediationModal').classList.add('active');
+            const container = document.getElementById('remediationContent');
+            try {
+                const res = await fetch(`/api/ai_risk_analysis/{{ scan_id }}`);
+                const data = await res.json();
+                if (data.success && data.recommendations && data.recommendations.length > 0) {
+                    let html = '';
+                    data.recommendations.forEach(rec => {
+                        const color = rec.priority === 'CRITICAL' ? 'var(--accent-red)' : rec.priority === 'HIGH' ? 'var(--accent-yellow)' : 'var(--accent-blue)';
+                        html += `<div class="border-l-4 mb-4 p-4 bg-[rgba(0,0,0,0.2)] rounded-r-lg" style="border-color: ${color};"><div class="flex justify-between items-center mb-2"><h4 class="font-bold text-sm" style="color: ${color};">[${rec.priority}] ${rec.action}</h4><span class="text-xs text-[var(--text-muted)]">${rec.timeline}</span></div><ul class="text-xs list-disc list-inside space-y-1 text-[var(--text-muted)]">${rec.steps.map(s => `<li>${s}</li>`).join('')}</ul></div>`;
+                    });
+                    container.innerHTML = html;
+                } else { container.innerHTML = '<div class="text-center py-8">No recommendations available.</div>'; }
+            } catch (e) { container.innerHTML = `<div class="text-[var(--accent-red)]">Error: ${e.message}</div>`; }
+        }
+
+        async function showAttackSurface() {
+            document.getElementById('attackSurfaceModal').classList.add('active');
+            const container = document.getElementById('attackSurfaceContent');
+            try {
+                const res = await fetch(`/api/ai_risk_analysis/{{ scan_id }}`);
+                const data = await res.json();
+                if (data.success && data.risk_data) {
+                    const r = data.risk_data;
+                    container.innerHTML = `<div class="grid grid-cols-2 gap-4 mb-6"><div class="bg-[rgba(0,0,0,0.2)] border border-[var(--border)] rounded-xl p-4 text-center"><div class="text-xs text-[var(--text-muted)] mb-1">Asset Criticality</div><div class="text-xl font-bold mono text-[var(--accent-purple)]">${r.asset_criticality}%</div></div><div class="bg-[rgba(0,0,0,0.2)] border border-[var(--border)] rounded-xl p-4 text-center"><div class="text-xs text-[var(--text-muted)] mb-1">Exploitation Prob.</div><div class="text-xl font-bold mono text-[var(--accent-red)]">${r.exploitation_probability}%</div></div></div><h4 class="text-xs font-bold text-[var(--text-main)] uppercase mb-3">Risk Breakdown</h4><div class="space-y-3">${Object.entries(r.components).map(([k, v]) => `<div><div class="flex justify-between text-xs mb-1"><span class="text-[var(--text-muted)] capitalize">${k.replace(/_/g, ' ')}</span><span>${v}%</span></div><div class="bg-[rgba(255,255,255,0.1)] h-1.5 rounded-full overflow-hidden"><div class="bg-[var(--accent-purple)] h-full" style="width: ${v}%"></div></div></div>`).join('')}</div>`;
+                }
+            } catch (e) { container.innerHTML = `<p class="text-[var(--accent-red)]">Error: ${e.message}</p>`; }
+        }
+
+        async function showRiskTrending() {
+            document.getElementById('riskTrendingModal').classList.add('active');
+            const container = document.getElementById('riskTrendingContent');
+            try {
+                const res = await fetch(`/api/ai_risk_analysis/{{ scan_id }}`);
+                const data = await res.json();
+                if (data.success && data.trending && data.trending.length > 0) {
+                    let html = '<div class="space-y-3">';
+                    data.trending.forEach(i => {
+                        html += `<div class="flex items-center justify-between p-3 bg-[rgba(0,0,0,0.2)] border border-[var(--border)] rounded-lg"><div class="flex items-center gap-4"><span class="text-xs text-[var(--text-muted)]">#${i.scan_id}</span><span class="text-xs">${i.date}</span></div><div class="flex items-center gap-3"><span class="font-bold mono text-sm">${i.risk_score || 0}</span><span class="badge bg-low">${i.risk_level}</span></div></div>`;
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else { container.innerHTML = '<p class="text-center py-8">No historical data.</p>'; }
+            } catch (e) { container.innerHTML = `<p class="text-[var(--accent-red)]">Error: ${e.message}</p>`; }
+        }
+
+        function updateClock() {
+            const t = new Date().toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute:'2-digit'});
+            const c = document.getElementById('clock'); if (c) c.textContent = t;
+            const cb = document.getElementById('clock-bottom'); if (cb) cb.textContent = t;
+        }
+        setInterval(updateClock, 1000); updateClock();
+    </script>
+</body>
+</html>
