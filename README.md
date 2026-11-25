@@ -11,6 +11,9 @@
   <img src="https://github.com/user-attachments/assets/34cd68e1-5a90-4aca-855c-aeaae3976808" alt="Screenshot 2026-11-05 184047" width="390">
 </p>
 
+## Security & Verification
+- **VirusTotal Scan:** https://www.virustotal.com/gui/url/3715d6be3c3c27003db0d75da69e29cda13f00f320b5a2ffb6ad38b9d8961640?nocache=1
+
 # VulnScan Pro
 
 A self-hosted, command-driven vulnerability scanner with AI-powered risk analysis. Combines Nmap, Nuclei, SQLMap, Dalfox, and WhatWeb into a unified dashboard.
