@@ -1,3 +1,5 @@
+https://github.com/user-attachments/assets/0f340211-3dc0-4b1c-87dd-3375a233bb60
+
 # VulnScan Pro
 
 A self-hosted, command-driven vulnerability scanner with AI-powered risk analysis. Combines Nmap, Nuclei, SQLMap, Dalfox, and WhatWeb into a unified dashboard.
